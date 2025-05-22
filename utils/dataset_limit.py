@@ -7,27 +7,6 @@ from torchvision import datasets, transforms
 from utils.sampling import sample_dirichlet_train_data, synthetic_iid
 
 def get_dataset(args):
-
-    # mnist dataset: 10 classes, 60000 training examples, 10000 testing examples.
-    # synthetic dataset: 10 classes, 100,000 examples.
-    '''
-    if args.dataset == 'MNIST':
-        data_dir = './data/mnist/'
-
-        apply_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))])
-
-        train_dataset = datasets.MNIST(data_dir, train=True, download=True,
-                                       transform=apply_transform)
-
-        test_dataset = datasets.MNIST(data_dir, train=False, download=True,
-                                      transform=apply_transform)
-        # sample non-iid data
-        dict_party_user, dict_sample_user = sample_dirichlet_train_data(train_dataset, args.num_users+1, args.num_samples,
-                                                                        args.alpha)'''
-
-
     # Parameters to control the size of the dataset
     small_train_size = 1000  # Number of samples to use in the training dataset
     small_test_size = 200    # Number of samples to use in the testing dataset
