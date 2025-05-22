@@ -41,10 +41,10 @@ python standard_fl_implementation.py --dataset=MNIST --model=cnn --alpha=1 --num
 ```
 
 # Results
-The simulation captures information about each training epoch and records them in the specified output directory. 
+The simulation captures information about each training epoch and records it in the specified output directory. 
 
 Four CSV files are created: <br>
-**scores**: records the model accuracy and loss after each training epoch
-**sizes**: records the size of the gradients being encrypted and decrypted
-**times**: records the individual runtime of each procedure in the training epoch
-**transmissions**: records the number of transmissions done during each training epoch
+**scores**: records the model accuracy and loss after each training epoch <br>
+**sizes**: records the size of the gradients being encrypted and decrypted <br>
+**times**: records the individual runtime of each procedure in the training epoch <br>
+**transmissions**: records the number of transmissions done during each training epoch <br>
