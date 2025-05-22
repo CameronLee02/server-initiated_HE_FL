@@ -1,13 +1,13 @@
 # Server-initiated HE FL
 This repo is used to provide advanced privacy protection in Federated Learning using Server-initiated Homomorphic Encryption. Individual training gradients are masked with a noise, Homomorphically Encrypted using CKKS, and passed a long a chain of clients to create a secure aggregation system.
 
-# Four main files
+# Four Main Files
 **main.py**: Contains code necessary to run simulation <br>
 **network_node.py**: Contains the NetworkSimulationClass, which acts as the network in this simulation and transmits messages between the Clients and the Central Server <br>
 **client_node.py**: Contains the ClientNodeClass, which acts as a Client in the simulation <br>
 **server_node.py**: Contains the ServerNodeClass, which acts as the Central Server in the simulation <br>
 
-# Python and Packages version
+# Python and Packages Version
 Python TenSEAL library is required for CKKS and the current setup uses Python Version 3.9 to properly install all requirements. More up to date python versions will cause issues with the TenSEAL library. Requirements.txt states to use numpy 2.0.1. If this doesn't work, use numpy 1.26.4
 
 # Running Simulation
@@ -32,7 +32,7 @@ Example:
 python main.py --dataset=MNIST --model=cnn --alpha=1 --num_users=10 --local_ep=5 --partition_size=10 --output_directory=MNIST_baseline
 ```
 
-# Standard FL implementation (FedAVG)
+# Standard FL Implementation (FedAVG)
 This is the implementation of the standard/basic FedAVG FL algorithm and is used to compare against our proposed FL scheme. It takes the same arguments as above, except for `--partition_size`
 
 Example:
