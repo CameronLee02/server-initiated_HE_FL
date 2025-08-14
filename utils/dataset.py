@@ -1,9 +1,6 @@
 import numpy as np
-import torch
-from sklearn.model_selection import train_test_split
-from torch.utils.data import TensorDataset, DataLoader
 from torchvision import datasets, transforms
-from utils.sampling import sample_dirichlet_train_data, synthetic_iid
+from utils.sampling import sample_dirichlet_train_data
 
 def get_dataset(args):
     # CIFAR-10: 10 classes, 60,000 images (50,000 train, 10,000 test)
@@ -47,68 +44,6 @@ def get_dataset(args):
         # Sample non-iid data
         dict_party_user, dict_sample_user = sample_dirichlet_train_data(
             train_dataset, args.num_users+1, args.num_samples, args.alpha)
-
-    # Synthetic dataset: 10 classes, 100,000 examples.
-    elif args.dataset == 'Synthetic' and args.iid:
-        data_dir = './data/synthetic/synthetic_x_0.npz'
-        synt_0 = np.load(data_dir)
-        X = synt_0['x'].astype(np.float64)
-        Y = synt_0['y'].astype(np.int32)
-
-        x_train, x_val, y_train, y_val = train_test_split(X, Y, test_size=0.2, random_state=42)
-
-        train_dataset = DataLoader(TensorDataset(torch.from_numpy(x_train).float(), torch.from_numpy(y_train).long()))
-        test_dataset = DataLoader(TensorDataset(torch.from_numpy(x_val).float(), torch.from_numpy(y_val).long()))
-
-        # Sample iid data
-        dict_party_user, dict_sample_user = synthetic_iid(train_dataset, args.num_users, args.num_samples)
-
-    elif args.dataset == 'Synthetic' and not args.iid:
-        data_dir = './data/synthetic/synthetic_x_0.npz'
-        synt_0 = np.load(data_dir)
-        X = synt_0['x'].astype(np.float64)
-        Y = synt_0['y'].astype(np.int32)
-
-        x_train, x_val, y_train, y_val = train_test_split(X, Y, test_size=0.2, random_state=42)
-
-        train_dataset = DataLoader(TensorDataset(torch.from_numpy(x_train).float(), torch.from_numpy(y_train).long()))
-        test_dataset = DataLoader(TensorDataset(torch.from_numpy(x_val).float(), torch.from_numpy(y_val).long()))
-
-        # Sample non-iid data
-        dict_party_user, dict_sample_user = sample_dirichlet_train_data(
-            train_dataset, args.num_users, args.num_samples, args.alpha)
-
-    # Example FLAIR dataset loading (Modify as needed for your specific FLAIR dataset)
-    elif args.dataset == 'FLAIR':
-        from nibabel import load as load_nii
-
-        class FLAIRDataset(Dataset):
-            def __init__(self, data_dir, transform=None):
-                self.data_dir = data_dir
-                self.transform = transform
-                self.image_files = [f for f in os.listdir(data_dir) if f.endswith('.nii')]
-
-            def __len__(self):
-                return len(self.image_files)
-
-            def __getitem__(self, idx):
-                img_name = os.path.join(self.data_dir, self.image_files[idx])
-                image = load_nii(img_name).get_fdata()
-                image = torch.tensor(image, dtype=torch.float32)
-                if self.transform:
-                    image = self.transform(image)
-                return image, 0  # Assuming binary classification, otherwise change the label
-
-        transform = transforms.Compose([
-            transforms.Normalize(mean=[0.5], std=[0.5])
-        ])
-
-        train_dataset = FLAIRDataset(data_dir='./data/flair/train', transform=transform)
-        test_dataset = FLAIRDataset(data_dir='./data/flair/test', transform=transform)
-
-        # Sample non-iid data
-        dict_party_user, dict_sample_user = sample_dirichlet_train_data(
-            train_dataset, args.num_users, args.num_samples, args.alpha)
 
     else:
         train_dataset = []

@@ -1,6 +1,6 @@
 import torch
 import tkinter as tk
-from tkinter import scrolledtext, font, ttk
+from tkinter import scrolledtext, font
 import numpy as np
 import time
 import threading
