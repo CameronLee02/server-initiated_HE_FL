@@ -13,11 +13,14 @@ import csv
 import os
 import copy
 
+import torchtext; torchtext.disable_torchtext_deprecation_warning()
+from torchtext.data.utils import get_tokenizer
+from collections import Counter
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from models.Nets import MLP, Mnistcnn, Cifar10cnn, SvhnCnn
+from models.Nets import Mnistcnn, Cifar10cnn, SvhnCnn, LSTMClassifier
 from utils.dataset import get_dataset, exp_details
 from utils.options import args_parser2
-from models.Update import LocalUpdate
+from models.Update import LocalUpdateCNN, LocalUpdateIMDB, DatasetSplitIMDB
 from models.test import test_fun
 from models.Fed import FedAvg
 
@@ -36,11 +39,13 @@ class ClientNodeClass():
         self.args = args
         self.node_list = None
         
-    def client_training(self, client_id, dataset_train, dict_party_user, net_glob, text_widget, context, overhead_info, train_time_list, 
+    def client_training(self, client_id, dataset_train, dict_party_user, net_glob, stoi, tokenizer, text_widget, context, overhead_info, train_time_list, 
                         encryption_time_list, aggregate_time_list, G, visualisation_canvas, visualisation_ax, colours, pos):
         self.network.updateText(f'Starting training on client {client_id}', text_widget)
-    
-        local = LocalUpdate(args=self.args, dataset=dataset_train, idxs=dict_party_user[client_id])
+        if self.args.dataset == 'IMDB':
+            local = LocalUpdateIMDB(args=self.args, dataset=dataset_train, idxs=dict_party_user[client_id], vocab=stoi, tokenizer=tokenizer)
+        else:
+            local = LocalUpdateCNN(args=self.args, dataset=dataset_train, idxs=dict_party_user[client_id])
 
         # Measure model distribution (downloading the model to the client)
         net_glob.load_state_dict(copy.deepcopy(net_glob.state_dict()))
@@ -91,23 +96,6 @@ class ServerNodeClass():
         if "RESULTS" in message.keys() and sender_id in self.node_list.keys():
             self.received_weights_list.append(message["RESULTS"][0])
             self.local_loss.append(message["RESULTS"][1])
-
-    def meanAggregatedWeights(self, aggregated_weights, client_count, text_widget):
-        start_time = time.time()
-        self.network.updateText("Computing mean of aggregated weights...", text_widget)
-        mean_weights = {}
-
-        for name, weight in aggregated_weights.items():
-
-            mean_weight = weight / client_count  
-            mean_weights[name] = mean_weight.clone().detach().to(dtype=torch.float32)
-
-            if self.network.checkForNan({name: mean_weights[name]}, "Mean Weights", text_widget):
-                raise ValueError(f"NaN detected in mean weights: {name}")
-
-        mean_time = time.time() - start_time
-        self.network.updateText(f"Mean computation completed in {mean_time:.4f} seconds.", text_widget)
-        return mean_weights
     
     def displayNetwork(self, visualisation_canvas, visualisation_ax):
         nodes = list(self.node_list.keys())
@@ -128,13 +116,23 @@ class ServerNodeClass():
         self.overhead_info["epoch_num"] = epoch_num
         self.overhead_info["num_transmissions"].append(0)
     
-    def trainingProcess(self, net_glob, dataset_train, dict_party_user, text_widget, visualisation_canvas, visualisation_ax, overhead_info, ax1, ax2, canvas):
+    def trainingProcess(self, net_glob, dataset_train, dataset_test, dict_party_user, stoi, tokenizer, text_widget, visualisation_canvas, visualisation_ax, overhead_info, ax1, ax2, canvas):
         self.overhead_info = overhead_info
 
         net_glob.train()
 
         epoch_losses = []
         epoch_accuracies = []
+
+        test_dataset = dataset_test
+        if self.args.dataset == "IMDB":
+            all_indices = list(range(len(dataset_test))) 
+            test_dataset = DatasetSplitIMDB(
+                dataset=dataset_test, 
+                idxs=all_indices,
+                vocab=stoi,
+                tokenizer=tokenizer,
+                max_seq_len=args.max_seq_len) 
 
         start_total_time = time.time()
         
@@ -167,6 +165,8 @@ class ServerNodeClass():
                         dataset_train,
                         dict_party_user,
                         net_glob,
+                        stoi, 
+                        tokenizer,
                         text_widget,
                         context,
                         self.overhead_info,
@@ -201,8 +201,9 @@ class ServerNodeClass():
             self.overhead_info["update_times"].append(time.time() - update_start_time)
             self.network.updateText('Server has updated the global model with final aggregated weights.', text_widget)
 
-            net_glob.eval()
-            acc_train, _ = test_fun(net_glob, dataset_train, self.args)
+            net_glob.eval()   
+                      
+            acc_train, _ = test_fun(net_glob, test_dataset, self.args)
             epoch_losses.append(np.mean(self.local_loss))
             epoch_accuracies.append(acc_train)
             self.overhead_info["acc_score"].append(acc_train)
@@ -280,29 +281,10 @@ class NetworkSimulationClass():
             }
         }
     
-    #this function is used to send 1 message to 1 node
-    def messageSingleNode(self, sender_id, receiver_id ,message, reason):
-        if sender_id in self.nodes.keys() and receiver_id in self.nodes.keys():
-            self.checkReason(reason)
-            self.nodes[receiver_id].receiveMessage(sender_id, message)
-    
     #This function is used to send a message to just the central server node
     def messageCentralServer(self, sender_id, message, reason):
         self.checkReason(reason)
         self.server_node.receiveMessage(sender_id, message)
-    
-    #this function is used to send a message to all the node, except the central server node.
-    def messageAllNodesExcludeServer(self, sender_id, message, reason):
-        threads = []
-        for key, value in self.nodes.items():
-            if key != sender_id:
-                self.checkReason(reason)
-                t = threading.Thread(target=value.receiveMessage, args=(sender_id, message))
-                t.start()
-                threads.append(t)
-
-        for t in threads:
-            t.join()
     
     #checks the reason for the transmissions and increments the count the keeps track of the number of transmissions for that reason
     #purely just for collecting data. not necessary for implementation
@@ -320,25 +302,6 @@ class NetworkSimulationClass():
                 self.updateText(f"NaN detected in {description}: {name}", text_widget)
                 return True
         return False
-
-    def logWeightStats(self, weights_dict, description, text_widget):
-        for name, weight in weights_dict.items():
-            weight_np = weight.cpu().numpy()
-            self.updateText(f"{description} - {name}: mean={weight_np.mean():.4f}, max={weight_np.max():.4f}, min={weight_np.min():.4f}", text_widget)
-
-    def aggregateWeights(self, weights1, weights2, text_widget):
-        start_time = time.time()
-        self.updateText("Aggregating non-encrypted weights using standard addition...", text_widget)
-        aggregated_weights = {}
-
-        # Direct aggregation for non-encrypted weights without chunking
-        for name in weights1.keys():
-            aggregated_weight = weights1[name] + weights2[name]  # Assuming these are directly addable (e.g., NumPy arrays or tensors)
-            aggregated_weights[name] = aggregated_weight
-
-        aggregation_time = time.time() - start_time
-        self.updateText(f"Non-encrypted weights aggregation completed in {aggregation_time:.4f} seconds.", text_widget)
-        return aggregated_weights
 
     def updateDisplayNetwork(self, G, visualisation_canvas, visualisation_ax, colours, pos):
         nx.draw(G, pos, with_labels=True, node_size=800, node_color=colours, font_size=10, font_weight="bold", edge_color="gray", ax=visualisation_ax)
@@ -365,6 +328,19 @@ class NetworkSimulationClass():
 
         canvas.draw()
 
+    def build_vocab_hf(self, dataset, tokenizer, max_size, min_freq=2):
+        counter = Counter()
+        for ex in dataset:
+            tokens = tokenizer(ex["text"])
+            counter.update(tokens)
+        # most_common returns list of (tok,freq) sorted by freq desc
+        most_common = [tok for tok, freq in counter.most_common(max_size) if freq >= min_freq]
+        stoi = {tok: i+2 for i, tok in enumerate(most_common)}  # 0:pad, 1:unk
+        stoi["<pad>"] = 0
+        stoi["<unk>"] = 1
+        itos = {i: tok for tok, i in stoi.items()}
+        return stoi, itos
+
     def initialiseLearningFixtures(self, text_widget, ax1, ax2, fig, canvas, visualisation_canvas, visualisation_ax):
         dataset_train, dataset_test, dict_party_user, _ = get_dataset(self.args)
         self.overhead_info["dataset_info"] = {
@@ -374,6 +350,8 @@ class NetworkSimulationClass():
         }
         print(self.overhead_info["dataset_info"])
 
+
+        tokenizer = get_tokenizer("basic_english")
         if self.args.model == 'cnn':
             if self.args.dataset == 'MNIST':
                 net_glob = Mnistcnn(args=self.args).to(self.args.device)
@@ -384,11 +362,14 @@ class NetworkSimulationClass():
             else:
                 self.updateText('Error: unrecognized dataset for CNN model', text_widget)
                 return
-        elif self.args.model == 'mlp':
-            len_in = 1
-            for dim in dataset_train[0][0].shape:
-                len_in *= dim
-            net_glob = MLP(dim_in=len_in, dim_hidden=200, dim_out=self.args.num_classes).to(self.args.device)
+            stoi = None
+        elif self.args.model == 'lstm':
+            print("Building vocabulary...")
+            stoi, itos = self.build_vocab_hf(dataset_train, tokenizer, self.args.max_vocab_size, 2)
+            self.args.vocab_size = max(stoi.values()) + 1
+            print(f"Vocab size: {self.args.vocab_size}")
+
+            net_glob = LSTMClassifier(args=self.args).to(self.args.device)
         else:
             self.updateText('Error: unrecognized model', text_widget)
             return
@@ -397,7 +378,7 @@ class NetworkSimulationClass():
         self.updateText('Model architecture loaded and initialized. Starting training process on dataset: ' + self.args.dataset + '\n', text_widget)
         self.updatePlots([], [], ax1, ax2, canvas)
 
-        acc_train = self.server_node.trainingProcess(net_glob, dataset_train, dict_party_user, text_widget, visualisation_canvas, visualisation_ax, self.overhead_info, ax1, ax2, canvas)
+        acc_train = self.server_node.trainingProcess(net_glob, dataset_train, dataset_test, dict_party_user, stoi, tokenizer, text_widget, visualisation_canvas, visualisation_ax, self.overhead_info, ax1, ax2, canvas)
 
         exp_details(self.args)
         self.updateText("Training complete. Final Accuracy: {:.2f}".format(acc_train), text_widget)

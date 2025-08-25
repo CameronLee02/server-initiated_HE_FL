@@ -3,7 +3,7 @@ import time
 import random
 import copy
 
-from models.Update import LocalUpdate
+from models.Update import LocalUpdateCNN, LocalUpdateIMDB
 
 #Client node class that acts as the local clients participating in FL
 class ClientNodeClass():
@@ -71,7 +71,7 @@ class ClientNodeClass():
         self.parition_numbers = []
         self.noise_partitions = []
         
-    def client_training(self, route, client_id, dataset_train, dict_party_user, net_glob, text_widget, context, overhead_info, train_time_list, 
+    def client_training(self, route, client_id, dataset_train, dict_party_user, net_glob, stoi, tokenizer, text_widget, context, overhead_info, train_time_list, 
                         encryption_time_list, aggregate_time_list, weight_size_noise_list, 
                         G, visualisation_canvas, visualisation_ax, colours, pos):
         self.route = []
@@ -92,7 +92,10 @@ class ClientNodeClass():
 
         self.network.updateText(f'Starting training on client {client_id}', text_widget)
     
-        local = LocalUpdate(args=self.args, dataset=dataset_train, idxs=dict_party_user[client_id])
+        if self.args.dataset == 'IMDB':
+            local = LocalUpdateIMDB(args=self.args, dataset=dataset_train, idxs=dict_party_user[client_id], vocab=stoi, tokenizer=tokenizer)
+        else:
+            local = LocalUpdateCNN(args=self.args, dataset=dataset_train, idxs=dict_party_user[client_id])
 
         # Measure model distribution (downloading the model to the client)
         net_glob.load_state_dict(copy.deepcopy(net_glob.state_dict()))

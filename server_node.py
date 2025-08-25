@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import networkx as nx
 from models.test import test_fun
+from models.Update import DatasetSplitIMDB
 import statistics
 import csv
 import os
@@ -122,13 +123,23 @@ class ServerNodeClass():
         self.overhead_info["noise_calc_num_transmissions"].append(0)
         self.overhead_info["other_num_transmissions"].append(0)
     
-    def trainingProcess(self, net_glob, dataset_train, dict_party_user, text_widget, visualisation_canvas, visualisation_ax, overhead_info, ax1, ax2, canvas):
+    def trainingProcess(self, net_glob, dataset_train, dataset_test, dict_party_user, stoi, tokenizer, text_widget, visualisation_canvas, visualisation_ax, overhead_info, ax1, ax2, canvas):
         self.overhead_info = overhead_info
 
         net_glob.train()
 
         epoch_losses = []
         epoch_accuracies = []
+
+        test_dataset = dataset_test
+        if self.args.dataset == "IMDB":
+            all_indices = list(range(len(dataset_test))) 
+            test_dataset = DatasetSplitIMDB(
+                dataset=dataset_test, 
+                idxs=all_indices,
+                vocab=stoi,
+                tokenizer=tokenizer,
+                max_seq_len=self.args.max_seq_len)
 
         start_total_time = time.time()
         
@@ -190,6 +201,8 @@ class ServerNodeClass():
                         dataset_train,
                         dict_party_user,
                         net_glob,
+                        stoi, 
+                        tokenizer,
                         text_widget,
                         context,
                         self.overhead_info,
@@ -223,7 +236,7 @@ class ServerNodeClass():
             self.overhead_info["training_times"].append(statistics.mean(train_time_list))
 
             self.overhead_info["weight_size_noise_encryption"].append(statistics.mean(weight_size_noise_list))
-            
+            print("start Noise Calc stage")
             self.calculateNoise()
 
             decrypted_weights, weight_size = self.decryptWeights(received_encrypted_weights, context, original_shapes, text_widget, len(list(self.node_list.keys())), self.noise_added)
@@ -240,7 +253,8 @@ class ServerNodeClass():
             self.network.updateText('Server has updated the global model with final aggregated weights.', text_widget)
 
             net_glob.eval()
-            acc_train, _ = test_fun(net_glob, dataset_train, self.args)
+
+            acc_train, _ = test_fun(net_glob, test_dataset, self.args)
             epoch_losses.append(np.mean(self.local_loss))
             epoch_accuracies.append(acc_train)
             self.overhead_info["acc_score"].append(acc_train)

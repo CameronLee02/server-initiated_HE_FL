@@ -1,6 +1,7 @@
 import numpy as np
 from torchvision import datasets, transforms
 from utils.sampling import sample_dirichlet_train_data
+from datasets import load_dataset
 
 def get_dataset(args):
     # CIFAR-10: 10 classes, 60,000 images (50,000 train, 10,000 test)
@@ -14,7 +15,7 @@ def get_dataset(args):
 
         # Sample non-iid data
         dict_party_user, dict_sample_user = sample_dirichlet_train_data(
-            train_dataset, args.num_users+1, args.num_samples, args.alpha)
+            train_dataset, args.num_users+1, args.num_samples, args)
 
     # MNIST: 10 classes, 60,000 training examples, 10,000 testing examples.
     elif args.dataset == 'MNIST':
@@ -28,9 +29,8 @@ def get_dataset(args):
         train_dataset = datasets.MNIST(data_dir, train=True, download=True, transform=apply_transform)
         test_dataset = datasets.MNIST(data_dir, train=False, download=True, transform=apply_transform)
 
-        # Sample non-iid data
         dict_party_user, dict_sample_user = sample_dirichlet_train_data(
-            train_dataset, args.num_users+1, args.num_samples, args.alpha)
+            train_dataset, args.num_users+1, args.num_samples, args)
     
     # SVHN: Street View House Numbers dataset
     elif args.dataset == 'SVHN':
@@ -41,9 +41,18 @@ def get_dataset(args):
         train_dataset = datasets.SVHN(root='./data/svhn', split='train', download=True, transform=transform)
         test_dataset = datasets.SVHN(root='./data/svhn', split='test', download=True, transform=transform)
 
-        # Sample non-iid data
         dict_party_user, dict_sample_user = sample_dirichlet_train_data(
-            train_dataset, args.num_users+1, args.num_samples, args.alpha)
+            train_dataset, args.num_users+1, args.num_samples, args)
+        
+    # IMDB: IMDB review dataset
+    elif args.dataset == 'IMDB':
+        dataset = load_dataset("imdb")
+        train_dataset = dataset["train"]
+        test_dataset = dataset["test"]
+
+        dict_party_user, dict_sample_user = sample_dirichlet_train_data(
+            train_dataset, args.num_users+1, args.num_samples, args
+        )
 
     else:
         train_dataset = []

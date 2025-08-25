@@ -15,9 +15,13 @@ def args_parser():
     parser.add_argument('--bs', type=int, default=128, help="test batch size")
     parser.add_argument('--lr', type=float, default=0.01, help="learning rate")
     parser.add_argument('--momentum', type=float, default=0.9, help="SGD momentum (default: 0.5)")
-    parser.add_argument('--model', type=str, default='mlp', help='model name')
+    parser.add_argument('--model', type=str, default='cnn', help='model name')
     parser.add_argument('--partition_size', type=int, default=3, help='minimum size of the partitions')
     parser.add_argument('--output_directory', type=str, default='results', help="the name of the directory to write the results to")
+    parser.add_argument('--max_seq_len', type=int, default=256, help="the max length a sequence can be")
+    parser.add_argument('--embed_dim', type=int, default=100, help="")
+    parser.add_argument('--hidden_dim', type=int, default=128, help="")
+    parser.add_argument('--max_vocab_size', type=int, default=20000, help="")
 
     # other arguments
     parser.add_argument('--dataset', type=str, default='MNIST', help="name of dataset")
@@ -42,8 +46,12 @@ def args_parser2():
     parser.add_argument('--bs', type=int, default=128, help="test batch size")
     parser.add_argument('--lr', type=float, default=0.01, help="learning rate")
     parser.add_argument('--momentum', type=float, default=0.9, help="SGD momentum (default: 0.5)")
-    parser.add_argument('--model', type=str, default='mlp', help='model name')
+    parser.add_argument('--model', type=str, default='cnn', help='model name')
     parser.add_argument('--output_directory', type=str, default='results', help="the name of the directory to write the results to")
+    parser.add_argument('--max_seq_len', type=int, default=256, help="the max length a sequence can be")
+    parser.add_argument('--embed_dim', type=int, default=100, help="")
+    parser.add_argument('--hidden_dim', type=int, default=128, help="")
+    parser.add_argument('--max_vocab_size', type=int, default=20000, help="")
 
     # other arguments
     parser.add_argument('--dataset', type=str, default='Synthetic', help="name of dataset")

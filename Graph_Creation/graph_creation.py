@@ -93,25 +93,31 @@ def graphDataTime(file_names, columns):
     total_runtime = {
         "SVHN": 0,
         "MNIST": 0,
-        "CIFAR-10": 0
+        "CIFAR-10": 0,
+        "IMDB" : 0
     }
     for key in yaxis_dict:
         data = yaxis_dict[key]
         total_runtime["SVHN"] += data[0]
         total_runtime["MNIST"] += data[1]
         total_runtime["CIFAR-10"] += data[2]
+        total_runtime["IMDB"] += data[3]
     SVHNRuntime = total_runtime["SVHN"]
     SVHNTrainRuntime = yaxis_dict["Training"][0]
     MNISTRuntime = total_runtime["MNIST"]
     MNISTTrainRuntime = yaxis_dict["Training"][1]
     CIFA10Runtime = total_runtime["CIFAR-10"]
     CIFA10TrainRuntime = yaxis_dict["Training"][2]
+    IMDBRuntime = total_runtime["IMDB"]
+    IMDBTrainRuntime = yaxis_dict["Training"][3]
     print(f"Total Runtime SVHN: {SVHNRuntime}.... Runtime of Training: {SVHNTrainRuntime}...." +
           f"Percentage of our scheme runtime: {(SVHNTrainRuntime/SVHNRuntime)*100}")
     print(f"Total Runtime MNIST: {MNISTRuntime}.... Runtime of Training: {MNISTTrainRuntime}...." +
           f"Percentage of our scheme runtime: {(MNISTTrainRuntime/MNISTRuntime)*100}")
     print(f"Total Runtime CIFAR-10: {CIFA10Runtime}.... Runtime of Training: {CIFA10TrainRuntime}...." +
           f"Percentage of our scheme runtime: {(CIFA10TrainRuntime/CIFA10Runtime)*100}")
+    print(f"Total Runtime IMDB: {IMDBRuntime}.... Runtime of Training: {IMDBTrainRuntime}...." +
+          f"Percentage of our scheme runtime: {(IMDBTrainRuntime/IMDBRuntime)*100}")
     width = 0.5
 
     fig, ax = plt.subplots(figsize=(8, 5)) 
@@ -125,7 +131,7 @@ def graphDataTime(file_names, columns):
     ax.set_ylim(0, max_height * 1.1)
 
     ax.set_ylabel("Time (seconds)")
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.45), ncol=3)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.45), ncol=3, fontsize='small')
     plt.tight_layout() 
     plt.show()
 
@@ -184,7 +190,7 @@ def graphCompareDatasetScoresBaseFL(file_names):
     ax.set_ylabel('Accuracy')
 
     ax.grid(True)
-    ax.legend(loc="lower right", ncol=1)
+    ax.legend(loc="lower right", ncol=1, fontsize='small')
     plt.tight_layout() 
     plt.show()
 
@@ -200,7 +206,7 @@ def graphCompareDatasetScoresBaseFL(file_names):
     ax.set_ylabel('Loss')
 
     ax.grid(True)
-    ax.legend(loc="upper right", ncol=1)
+    ax.legend(loc="upper right", ncol=1, fontsize='small')
     plt.tight_layout() 
     plt.show()
 
@@ -420,12 +426,14 @@ if __name__ == '__main__':
 
     # THIS IS USED TO COMPARE THE ACCURACY AND LOSS OF OUR SCHEME VS FEDAVG SCHEME ACROSS DIFFERENT DATASETS
     graph_compare_dataset_scores_files = {
-        "Our Scheme Alpha=10": "../Results/MNIST_baseline_alpha_10/MNIST_baseline_alpha_10_scores.csv",
-        "FedAVG Scheme Alpha=10": "../Results/MNIST_baseline_standard_fl_alpha_10/MNIST_baseline_standard_fl_alpha_10_scores.csv",
-        "Our Scheme Alpha=1": "../Results/MNIST_baseline/MNIST_baseline_scores.csv",
-        "FedAVG Scheme Alpha=1": "../Results/MNIST_baseline_standard_fl/MNIST_baseline_standard_fl_scores.csv",
-        "Our Scheme Alpha=0.1": "../Results/MNIST_baseline_alpha_0_1/MNIST_baseline_alpha_0_1_scores.csv",
-        "FedAVG Scheme Alpha=0.1": "../Results/MNIST_baseline_standard_fl_alpha_0_1/MNIST_baseline_standard_fl_alpha_0_1_scores.csv"
+        "MNIST Our Scheme": "../Results/MNIST_baseline/MNIST_baseline_scores.csv",
+        "MNIST FedAVG Scheme": "../Results/MNIST_baseline_standard_fl/MNIST_baseline_standard_fl_scores.csv",
+        "CIFAR10 Our Scheme": "../Results/CIFAR10_baseline/CIFAR10_baseline_scores.csv",
+        "CIFAR10 FedAVG Scheme": "../Results/CIFAR10_baseline_standard_fl/CIFAR10_baseline_standard_fl_scores.csv",
+        "SVHN Our Scheme": "../Results/SVHN_baseline/SVHN_baseline_scores.csv",
+        "SVHN FedAVG Scheme": "../Results/SVHN_baseline_standard_fl/SVHN_baseline_standard_fl_scores.csv",
+        "IMDB Our Scheme": "../Results/IMDB_baseline/IMDB_baseline_scores.csv",
+        "IMDB FedAVG Scheme": "../Results/IMDB_baseline_standard_fl/IMDB_baseline_standard_fl_scores.csv"
     }
     graphCompareDatasetScoresBaseFL(graph_compare_dataset_scores_files)
     '''
@@ -440,15 +448,14 @@ if __name__ == '__main__':
     graphCompareOverhead(graph_compare_dataset_time_files, columns, 'Datasets')
     
     # THIS IS USED TO COMPARE THE AVG EPOCH TIMES (STACKED BAR CHART) OF OUR SCHEME ACROSS DIFFERENT DATASETS
-
     graph_compare_dataset_time_files = {
         "SVHN": "../Results/SVHN_baseline/SVHN_baseline_times.csv",
         "MNIST": "../Results/MNIST_baseline/MNIST_baseline_times.csv",
-        "CIFAR-10": "../Results/CIFAR10_baseline/CIFAR10_baseline_times.csv"
+        "CIFAR-10": "../Results/CIFAR10_baseline/CIFAR10_baseline_times.csv",
+        "IMDB": "../Results/IMDB_baseline/IMDB_baseline_times.csv"
     }
     columns = ["Training", "Noise Calculation", "Key Generation", "Encyrption", "Decyrption", "Aggregation", "Model Updating"]
     graphDataTime(graph_compare_dataset_time_files, columns)
-    
     # THIS IS USED TO COMPARE THE SIZE TO SIZE OF ENCRYPTION/DECRYPTION OF OUR SCHEME ACROSS DIFFERENT DATASETS
 
     graph_compare_dataset_time_files = {

@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 import torch.nn.functional as F
     
@@ -79,3 +80,19 @@ class SvhnCnn(nn.Module):
         x = self.relu(self.fc1(x))
         x = self.fc2(x)
         return x
+    
+class LSTMClassifier(nn.Module):
+    def __init__(self, args):
+        super().__init__()
+        self.embedding = nn.Embedding(args.vocab_size, args.embed_dim, padding_idx=0)
+        self.lstm = nn.LSTM(args.embed_dim, args.hidden_dim, batch_first=True, bidirectional=True)
+        self.fc = nn.Linear(args.hidden_dim*2, args.num_classes)
+    def forward(self, input_ids, lengths=None):
+        emb = self.embedding(input_ids) 
+        packed = torch.nn.utils.rnn.pack_padded_sequence(emb, lengths.cpu(), batch_first=True, enforce_sorted=False)
+        _, (h_n, _) = self.lstm(packed)
+        h_forward = h_n[-2,:,:]
+        h_backward = h_n[-1,:,:]
+        h = torch.cat([h_forward, h_backward], dim=1)
+        out = self.fc(h)
+        return out

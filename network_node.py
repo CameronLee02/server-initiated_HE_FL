@@ -10,8 +10,12 @@ import platform
 import psutil  # For system information
 import networkx as nx
 import matplotlib.pyplot as plt
+
+import torchtext; torchtext.disable_torchtext_deprecation_warning()
+from torchtext.data.utils import get_tokenizer
+from collections import Counter
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from models.Nets import MLP, Mnistcnn, Cifar10cnn, SvhnCnn
+from models.Nets import MLP, Mnistcnn, Cifar10cnn, SvhnCnn, LSTMClassifier
 from utils.dataset import get_dataset, exp_details
 
 class NetworkSimulationClass():
@@ -155,6 +159,19 @@ class NetworkSimulationClass():
         ax2.tick_params(axis='both', which='major', labelsize=8)
 
         canvas.draw()
+    
+    def build_vocab_hf(self, dataset, tokenizer, max_size, min_freq=2):
+        counter = Counter()
+        for ex in dataset:
+            tokens = tokenizer(ex["text"])
+            counter.update(tokens)
+        # most_common returns list of (tok,freq) sorted by freq desc
+        most_common = [tok for tok, freq in counter.most_common(max_size) if freq >= min_freq]
+        stoi = {tok: i+2 for i, tok in enumerate(most_common)}  # 0:pad, 1:unk
+        stoi["<pad>"] = 0
+        stoi["<unk>"] = 1
+        itos = {i: tok for tok, i in stoi.items()}
+        return stoi, itos
 
     def initialiseLearningFixtures(self, text_widget, ax1, ax2, fig, canvas, visualisation_canvas, visualisation_ax):
         dataset_train, dataset_test, dict_party_user, _ = get_dataset(self.args)
@@ -164,6 +181,7 @@ class NetworkSimulationClass():
             "test_size": len(dataset_test)
         }
 
+        tokenizer = get_tokenizer("basic_english")
         if self.args.model == 'cnn':
             if self.args.dataset == 'MNIST':
                 net_glob = Mnistcnn(args=self.args).to(self.args.device)
@@ -174,11 +192,14 @@ class NetworkSimulationClass():
             else:
                 self.updateText('Error: unrecognized dataset for CNN model', text_widget)
                 return
-        elif self.args.model == 'mlp':
-            len_in = 1
-            for dim in dataset_train[0][0].shape:
-                len_in *= dim
-            net_glob = MLP(dim_in=len_in, dim_hidden=200, dim_out=self.args.num_classes).to(self.args.device)
+            stoi = None
+        elif self.args.model == 'lstm':
+            print("Building vocabulary...")
+            stoi, itos = self.build_vocab_hf(dataset_train, tokenizer, self.args.max_vocab_size, 2)
+            self.args.vocab_size = max(stoi.values()) + 1
+            print(f"Vocab size: {self.args.vocab_size}")
+
+            net_glob = LSTMClassifier(args=self.args).to(self.args.device)
         else:
             self.updateText('Error: unrecognized model', text_widget)
             return
@@ -187,7 +208,7 @@ class NetworkSimulationClass():
         self.updateText('Model architecture loaded and initialized. Starting training process on dataset: ' + self.args.dataset + '\n', text_widget)
         self.updatePlots([], [], ax1, ax2, canvas)
 
-        acc_train = self.server_node.trainingProcess(net_glob, dataset_train, dict_party_user, text_widget, visualisation_canvas, visualisation_ax, self.overhead_info, ax1, ax2, canvas)
+        acc_train = self.server_node.trainingProcess(net_glob, dataset_train, dataset_test, dict_party_user, stoi, tokenizer, text_widget, visualisation_canvas, visualisation_ax, self.overhead_info, ax1, ax2, canvas)
 
         exp_details(self.args)
         self.updateText("Training complete. Final Accuracy: {:.2f}".format(acc_train), text_widget)
