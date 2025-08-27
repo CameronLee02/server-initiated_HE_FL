@@ -374,7 +374,7 @@ def graphCompareOverheadServer(file_names, columns, xlabel):
     ax.set_ylabel('Time (seconds)')
 
     ax.grid(True)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.15), ncol=3)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.15), ncol=3, fontsize='small')
     plt.tight_layout() 
     plt.show()
 
@@ -412,7 +412,7 @@ if __name__ == '__main__':
 
     graph_compare_client_server_overhead = "../Results/MNIST_baseline/MNIST_baseline_times.csv"
     graphCompareDataTime(graph_compare_client_server_overhead)
-
+'''
     ### COMPARE TRANSMISSIONS OVER DIFFERENT PARTITIONS ON MNIST
 
     graph_compare_number_partition_files = {
@@ -422,8 +422,7 @@ if __name__ == '__main__':
     }
     columns = ["Noise Calculation", "Model and Weight Distribution"]
     graphCompareTransmissionsOverPartitions(graph_compare_number_partition_files, columns)
-    '''
-
+'''
     # THIS IS USED TO COMPARE THE ACCURACY AND LOSS OF OUR SCHEME VS FEDAVG SCHEME ACROSS DIFFERENT DATASETS
     graph_compare_dataset_scores_files = {
         "MNIST Our Scheme": "../Results/MNIST_baseline/MNIST_baseline_scores.csv",
@@ -436,13 +435,13 @@ if __name__ == '__main__':
         "IMDB FedAVG Scheme": "../Results/IMDB_baseline_standard_fl/IMDB_baseline_standard_fl_scores.csv"
     }
     graphCompareDatasetScoresBaseFL(graph_compare_dataset_scores_files)
-    '''
     # THIS IS USED TO COMPARE THE OVERHEAD OF OUR SCHEME FOR BOTH CLIENT AND SERVER ACROSS DIFFERENT DATASETS 
 
     graph_compare_dataset_time_files = {
         "SVHN": "../Results/SVHN_baseline/SVHN_baseline_times.csv",
         "MNIST": "../Results/MNIST_baseline/MNIST_baseline_times.csv",
-        "CIFAR-10": "../Results/CIFAR10_baseline/CIFAR10_baseline_times.csv"
+        "CIFAR-10": "../Results/CIFAR10_baseline/CIFAR10_baseline_times.csv",
+        "IMDB": "../Results/IMDB_baseline/IMDB_baseline_times.csv"
     }
     columns = ["Noise Calculation", "Encyrption", "Aggregation", "Decyrption", "Key Generation", "Model Updating"]
     graphCompareOverhead(graph_compare_dataset_time_files, columns, 'Datasets')

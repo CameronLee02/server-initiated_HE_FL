@@ -10,6 +10,8 @@ import platform
 import psutil  # For system information
 import networkx as nx
 import matplotlib.pyplot as plt
+import os
+import csv
 
 import torchtext; torchtext.disable_torchtext_deprecation_warning()
 from torchtext.data.utils import get_tokenizer
@@ -81,6 +83,7 @@ class NetworkSimulationClass():
             self.overhead_info["other_num_transmissions"][self.overhead_info["epoch_num"]] += 1
         elif reason == "noise":
             self.overhead_info["noise_calc_num_transmissions"][self.overhead_info["epoch_num"]] += 1
+            print(self.overhead_info["noise_calc_num_transmissions"][self.overhead_info["epoch_num"]])
 
 
     def updateText(self, message, text_widget):
@@ -209,6 +212,50 @@ class NetworkSimulationClass():
         self.updatePlots([], [], ax1, ax2, canvas)
 
         acc_train = self.server_node.trainingProcess(net_glob, dataset_train, dataset_test, dict_party_user, stoi, tokenizer, text_widget, visualisation_canvas, visualisation_ax, self.overhead_info, ax1, ax2, canvas)
+
+        try:
+            os.makedirs(self.args.output_directory)
+        except FileExistsError:
+            pass
+            
+        #writes the times of each portion of the experiment to a file
+        timefile = os.path.join(self.args.output_directory, self.args.output_directory + "_times.csv")
+        with open(timefile, 'w', newline='') as file:
+            write = csv.writer(file)
+            metrics = ["noise_calc_time", "training_times", "key_generation_time",
+                        "encryption_times", "decryption_times", "aggregation_times", "update_times",
+                        "epoch_times", "total_time"]
+            data_rows = zip(*[self.overhead_info[metric] for metric in metrics])
+            write.writerow(metrics)
+            write.writerows(data_rows)
+
+        #writes the transmissions of each portion of the experiment to a file
+        transmissionfile = os.path.join(self.args.output_directory, self.args.output_directory + "_transmissions.csv")
+        with open(transmissionfile, 'w', newline='') as file:
+                write = csv.writer(file)
+                metrics = ["noise_calc_num_transmissions", "other_num_transmissions"]
+                data_rows = zip(*[self.overhead_info[metric] for metric in metrics])
+                write.writerow(metrics)
+                write.writerows(data_rows)
+
+        #writes the accuracy and loss of each epoch of the experiment to a file
+        scoresfile = os.path.join(self.args.output_directory, self.args.output_directory + "_scores.csv")
+        with open(scoresfile, 'w', newline='') as file:
+                write = csv.writer(file)
+                metrics = ["acc_score", "loss_score"]
+                data_rows = zip(*[self.overhead_info[metric] for metric in metrics])
+                write.writerow(metrics)
+                write.writerows(data_rows)
+        
+        #writes the sizes of the weight before encryption and decryption for each epoch of the experiment to a file
+        sizesfile = os.path.join(self.args.output_directory, self.args.output_directory + "_sizes.csv")
+        with open(sizesfile, 'w', newline='') as file:
+                write = csv.writer(file)
+                metrics = ["weight_size_noise_encryption", "weight_size_decryption"]
+                data_rows = zip(*[self.overhead_info[metric] for metric in metrics])
+                write.writerow(metrics)
+                write.writerows(data_rows)
+
 
         exp_details(self.args)
         self.updateText("Training complete. Final Accuracy: {:.2f}".format(acc_train), text_widget)

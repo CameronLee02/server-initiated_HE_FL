@@ -107,7 +107,7 @@ class ServerNodeClass():
         max_noise_count = len(list(self.node_list.keys()))
         print(max_noise_count)
 
-        self.network.messageAllNodesExcludeServer(0, {"CALC_NOISE" : None}, None)
+        self.network.messageAllNodesExcludeServer(0, {"CALC_NOISE" : None}, "noise")
 
         #waits until it has received all the node's noise paritions sums
         while self.noise_values_count != max_noise_count :
@@ -271,46 +271,4 @@ class ServerNodeClass():
         total_time_array = np.full(shape=self.overhead_info["epoch_num"]+1, fill_value=time.time() - start_total_time)
         self.overhead_info["total_time"] = total_time_array
 
-        try:
-            os.makedirs(self.args.output_directory)
-        except FileExistsError:
-            pass
-            
-        #writes the times of each portion of the experiment to a file
-        timefile = os.path.join(self.args.output_directory, self.args.output_directory + "_times.csv")
-        with open(timefile, 'w', newline='') as file:
-            write = csv.writer(file)
-            metrics = ["noise_calc_time", "training_times", "key_generation_time",
-                        "encryption_times", "decryption_times", "aggregation_times", "update_times",
-                        "epoch_times", "total_time"]
-            data_rows = zip(*[self.overhead_info[metric] for metric in metrics])
-            write.writerow(metrics)
-            write.writerows(data_rows)
-
-        #writes the transmissions of each portion of the experiment to a file
-        transmissionfile = os.path.join(self.args.output_directory, self.args.output_directory + "_transmissions.csv")
-        with open(transmissionfile, 'w', newline='') as file:
-                write = csv.writer(file)
-                metrics = ["noise_calc_num_transmissions", "other_num_transmissions"]
-                data_rows = zip(*[self.overhead_info[metric] for metric in metrics])
-                write.writerow(metrics)
-                write.writerows(data_rows)
-
-        #writes the accuracy and loss of each epoch of the experiment to a file
-        scoresfile = os.path.join(self.args.output_directory, self.args.output_directory + "_scores.csv")
-        with open(scoresfile, 'w', newline='') as file:
-                write = csv.writer(file)
-                metrics = ["acc_score", "loss_score"]
-                data_rows = zip(*[self.overhead_info[metric] for metric in metrics])
-                write.writerow(metrics)
-                write.writerows(data_rows)
-        
-        #writes the sizes of the weight before encryption and decryption for each epoch of the experiment to a file
-        sizesfile = os.path.join(self.args.output_directory, self.args.output_directory + "_sizes.csv")
-        with open(sizesfile, 'w', newline='') as file:
-                write = csv.writer(file)
-                metrics = ["weight_size_noise_encryption", "weight_size_decryption"]
-                data_rows = zip(*[self.overhead_info[metric] for metric in metrics])
-                write.writerow(metrics)
-                write.writerows(data_rows)
         return acc_train
