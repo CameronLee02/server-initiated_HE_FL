@@ -389,7 +389,7 @@ def graphCompareTransmissionsOverPartitions(file_names, columns):
     yaxis_dict = {key: [] for key in columns}
     for key in transmissions_dict:
         yaxis_dict["Noise Calculation"].append(int(transmissions_dict[key][0]))
-        yaxis_dict["Model and Weight Distribution"].append(int(transmissions_dict[key][1]))
+        yaxis_dict["Model and Gradient Distribution"].append(int(transmissions_dict[key][1]))
 
     fig, ax = plt.subplots(figsize=(8, 5)) 
 
@@ -420,7 +420,7 @@ if __name__ == '__main__':
         "2": "../Results/MNIST_baseline_partition_2/MNIST_baseline_partition_2_transmissions.csv",
         "3": "../Results/MNIST_baseline_partition_3/MNIST_baseline_partition_3_transmissions.csv"
     }
-    columns = ["Noise Calculation", "Model and Weight Distribution"]
+    columns = ["Noise Calculation", "Model and Gradient Distribution"]
     graphCompareTransmissionsOverPartitions(graph_compare_number_partition_files, columns)
 '''
     # THIS IS USED TO COMPARE THE ACCURACY AND LOSS OF OUR SCHEME VS FEDAVG SCHEME ACROSS DIFFERENT DATASETS
